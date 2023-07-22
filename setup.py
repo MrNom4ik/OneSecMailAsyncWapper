@@ -1,11 +1,11 @@
 from distutils.core import setup
 
-setup(name='OneSecMailWapper',
-      description='Sync wapper over https://www.1secmail.com API temporary mail service',
+setup(name='OneSecMailAsyncWapper',
+      description='Async wapper over https://www.1secmail.com API temporary mail service',
       version='2.0.0',
       author='MrNom4ik',
-      url='https://github.com/MrNom4ik/OneSecMailWapper',
+      url='https://github.com/MrNom4ik/OneSecMailAsyncWapper',
       license='BY-NC-SA-4.0',
-      install_requires=['requests', 'pydantic'],
-      packages=['OneSecMailWapper']
+      install_requires=['async-cache', 'asyncio', 'pydantic'],
+      packages=['OneSecMailAsyncWapper']
       )

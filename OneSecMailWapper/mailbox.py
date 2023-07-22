@@ -1,5 +1,6 @@
+import asyncio
 import time
-from typing import List, Optional, Callable, Union
+from typing import List, Optional, Callable, Awaitable
 from random import choices
 from string import ascii_lowercase
 from time import sleep
@@ -19,13 +20,13 @@ class Attachment(BaseModel):
 
     mail: "Mail" = None
 
-    def get_content(self) -> bytes:
+    async def get_content(self) -> bytes:
         """Get attachment content
 
         :rtype: bytes
         """
 
-        return http_api.get_attachment(
+        return await http_api.get_attachment(
             login=self.mail.mailbox.login,
             domian=self.mail.mailbox.domian,
             id=self.mail.id,
@@ -39,24 +40,24 @@ class Mailbox(BaseModel):
 
     _checked_mails: List[int] = []
 
-    def get_mails(self) -> List["Mail"]:
+    async def get_mails(self) -> List["Mail"]:
         """Get all mails
 
         :rtype: List[Mail]
         """
 
         full_mails = []
-        short_mails = http_api.get_messages(self.login, self.domian)
+        short_mails = await http_api.get_messages(self.login, self.domian)
         for short_mail in short_mails:
-            full_mail = http_api.get_message(self.login, self.domian, short_mail["id"])
+            full_mail = await http_api.get_message(self.login, self.domian, short_mail["id"])
             full_mail['mailbox'] = self
             full_mails.append(full_mail)
         return MailList.validate_python(full_mails)
 
-    def wait_mail(self,
-                  handler: Callable[["Mail"], bool],
-                  delay: int = 5000
-                  ) -> "Mail":
+    async def wait_mail(self,
+                        handler: Callable[["Mail"], Awaitable[bool]],
+                        delay: int = 5000
+                        ) -> "Mail":
         """Wait a specific mail
         Creates a while loop and periodically checks for mails
 
@@ -70,21 +71,21 @@ class Mailbox(BaseModel):
         """
 
         while True:
-            mails = self.get_mails()
+            mails = await self.get_mails()
 
             not_cheched_mails = filter(lambda mail: mail.id not in self._checked_mails, mails)
 
             for mail in not_cheched_mails:
                 self._checked_mails.append(mail.id)
-                if handler(mail):
+                if await handler(mail):
                     return mail
 
-            time.sleep(delay / 1000)
+            await asyncio.sleep(delay / 1000)
 
 
 class Mail(BaseModel):
     id: int
-    from_adress: str = Field(alias='from')
+    from_address: str = Field(alias='from')
     subject: str
     date: datetime
     attachments: List[Attachment]
@@ -102,16 +103,16 @@ class Mail(BaseModel):
 MailList = TypeAdapter(List[Mail])
 
 
-def get_domians() -> List[str]:
+async def get_domians() -> List[str]:
     """Get all available domains
 
     :rtype: List[str]
     """
 
-    return http_api.get_domians()
+    return await http_api.get_domians()
 
 
-def get_mailbox(login: Optional[str] = None, domian: Optional[str] = None) -> Mailbox:
+async def get_mailbox(login: Optional[str] = None, domian: Optional[str] = None) -> Mailbox:
     """Get a specific mailbox
 
     Example:
@@ -133,6 +134,6 @@ def get_mailbox(login: Optional[str] = None, domian: Optional[str] = None) -> Ma
         _domian = domian or login.split("@")[1]
     else:
         _login = ''.join(choices(ascii_lowercase, k=6))
-        _domian = choices(get_domians())[0]
+        _domian = choices(await get_domians())[0]
 
     return Mailbox(login=_login, domian=_domian)
