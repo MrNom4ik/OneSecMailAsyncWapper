@@ -1,5 +1,6 @@
 # OneSecMailAsyncWapper
 OneSecMailAsyncWapper - Async wapper over https://www.1secmail.com API temporary mail service
+
 See also: https://github.com/MrNom4ik/OneSecMailWapper (sync version on the `requests` library)
 # Install
 ```bash
